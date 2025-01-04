@@ -15,7 +15,7 @@ let    #@
 
 	#-------------------------------------------------------------------------------------------------------
 	#All system parameters 
-	dh = 2^5 # number of level(s) considered in each HO
+	dh = 2^4 # number of level(s) considered in each HO
 	nt = Int(log(2, dh))
 	nb = 2 #number of bath  
 	ek = 15 #length of the bath chain  
@@ -61,9 +61,9 @@ let    #@
 	N_coeff = 160
 	tau = 0.01             ## time step duration
 	nst = 2000
-	maxdim1 = 90
+	maxdim1 = 100
 	maxdim2 = 20    #__@__
-	cutoff1 = 1E-10
+	cutoff1 = 1E-9
 	#-------------------------------------------------------------------------------------------------------
 	# Runge Kutta specifications    
 	h = 0.01
@@ -166,7 +166,7 @@ let    #@
 		end
 		orthogonalize!(ρ, Int(floor((bpose_st + bpose_en) / 2)))
 		#-------------------------------------------------------------------------------------------------------
-		if t % 20 == 0
+		if t % 2 == 0
 			# Measurement
 			pd = exp(loginner(pop2_op, ρ; cutoff = cutoff1))
 			append!(pop_ph, pd)
@@ -189,10 +189,10 @@ let    #@
 				xlabel = L"x", ylabel = L"p",
 				title = L"W(x,p)",
 				#colorbar_title="Value",           # Label for the color bar
-				clim = (-0.2, 0.2),                # Adjust the range to highlight negative regions
+				clim = (-0.5, 0.5),                # Adjust the range to highlight negative regions
 				aspect_ratio = 1.0,               # Set the aspect ratio to 1:1
 			)
-			display("image/png", p)
+            display("image/png", p)
 		end
 	end
 
