@@ -1,0 +1,6 @@
+[deps]
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+SymPy = "24249f21-da20-56a4-8eb1-6a02cf4ae2e6"
