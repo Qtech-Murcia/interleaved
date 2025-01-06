@@ -1,8 +1,5 @@
 
-# Add worker processes for parallelization
-addprocs()
-
-"""
+#= 
     extract_diag(mat, l)
 
 Extracts the l-th diagonal of a matrix.
@@ -12,8 +9,8 @@ Extracts the l-th diagonal of a matrix.
 - `l`: Offset of the diagonal to extract (0 for the main diagonal, >0 for superdiagonals, <0 for subdiagonals).
 
 # Returns
-- A vector containing the elements of the specified diagonal.
-"""
+- A vector containing the elements of the specified diagonal. =#
+
 @everywhere function extract_diag(mat, l)
     if l >= 0
         idx = 1:min(size(mat, 1), size(mat, 2) - l)
@@ -26,8 +23,8 @@ Extracts the l-th diagonal of a matrix.
 end
 
 
-"""
-    _wig_laguerre_val(L, x, c)
+
+ #=    _wig_laguerre_val(L, x, c)
 
 Computes the weighted Laguerre polynomial values using Clenshaw recursion.
 
@@ -37,14 +34,14 @@ Computes the weighted Laguerre polynomial values using Clenshaw recursion.
 - `c`: Vector of coefficients.
 
 # Returns
-- A 2D array of Laguerre polynomial values weighted by the coefficients.
-"""
+- A 2D array of Laguerre polynomial values weighted by the coefficients. =#
+
 @everywhere function _wig_laguerre_val(L, x, c)
-    """
-    Evaluation of polynomial series using Clenshaw recursion.
+
+    #= Evaluation of polynomial series using Clenshaw recursion.
     Returns polynomial series sum_n b_n * LL_n^L, where:
-    LL_n^L = (-1)^n * sqrt(L! * n! / (L + n)!) * LaguerreL[n, L, x].
-    """
+    LL_n^L = (-1)^n * sqrt(L! * n! / (L + n)!) * LaguerreL[n, L, x]. =#
+    
     n = length(c)
 
     # Special cases for short coefficient arrays
@@ -65,8 +62,8 @@ Computes the weighted Laguerre polynomial values using Clenshaw recursion.
     return y0 .- y1 .* ((L + 1) .- x) ./ sqrt(L + 1)  # Broadcasting subtraction and division
 end
 
-"""
-    wigner_clenshaw(rho, xvec, yvec, g = sqrt(2), sparse = false)
+
+   #=  wigner_clenshaw(rho, xvec, yvec, g = sqrt(2), sparse = false)
 
 Calculates the Wigner function using Clenshaw summation for numerical stability and efficiency.
 
@@ -78,16 +75,15 @@ Calculates the Wigner function using Clenshaw summation for numerical stability 
 - `sparse`: Boolean indicating if the density matrix is sparse (default `false`).
 
 # Returns
-- A 2D array representing the Wigner function over the specified grid.
-"""
+- A 2D array representing the Wigner function over the specified grid. =#
+
 @everywhere function parallel_wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=false)
-    """
-    The Wigner function is calculated as
+
+   #=  The Wigner function is calculated as
     :math:`W = e^(-0.5*x^2)/pi * sum_{L} c_L (2x)^L / sqrt(L!)` where 
     :math:`c_L = sum_n rho_{n,L+n} LL_n^L` where
-    :math:`LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]`
-    
-    """
+    :math:`LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]` =#
+
 
     M = size(rho, 1)  # Dimension of the density matrix
 

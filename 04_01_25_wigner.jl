@@ -6,10 +6,13 @@ using Distributed
 
 ITensors.disable_warn_order()
 
-let   
-    include("function_intl.jl")
-    include("wigner_fn.jl")
 
+# Add worker processes for parallelization
+addprocs()
+@everywhere include("function_intl.jl")
+@everywhere include("wigner_fn.jl")
+
+let
     # Phase-space for Wigner function
     xvec = range(-8, 8, length=100)  # x-coordinates
     yvec = range(-8, 8, length=100)  # y-coordinates
@@ -19,7 +22,7 @@ let
     dh = 2^6 # number of level(s) considered in each HO
     nt = Int(log(2, dh))
     nb = 2 #number of bath  
-    ek = 20 #length of the bath chain  
+    ek =10 #length of the bath chain  
     #------------------------------------------------------------------------------------------------------   
     # ITensor space 
     # Dot position
@@ -93,7 +96,7 @@ let
     ρ0 = MPO(stbath, states) #initial state
     #-------------------------------------------------------------------------------------------------------
     temps = 1.5
-    β_list = [1 / temps 1 / temps]   #__@__
+    β_list = [1/temps 1/temps]   #__@__
     #------------------------------------------------------------------------------------------------------- 
     println("-----------------------------------------------------------------------------------------------------------------------------")
     println("N_chain = $ek, ξ = ϵ = μ0 = $ξ, eV = $eV, Γ0 = $(Γ0_list[1]), β = $(β_list[1]), δ = $(δ_list[1]), ω_bath = $(ω_bath_list[1]), τ = $tau, T_st = $nst")
@@ -106,6 +109,16 @@ let
     #file_name_txt_2 = string(split(split(@__FILE__, ".")[end-1], string('\\'))[end], "_MPO_$temps")
     file_name_txt_2(x, y) = string(split(dirname(@__FILE__), '\\')[end], "/$y/", "$x", "_", "$today1", "_$(temps)_.png")
     file_name_txt_RHO = string(split(split(@__FILE__, ".")[end-1], string('\\'))[end], "_RHO_$temps.txt")
+
+    
+	# Plot the Wigner function as a heatmap
+	# Define custom colors with white for zero
+	color_min = RGB(50 / 255, 200 / 255, 100 / 255)   # Bright green for negative values
+	color_mid = RGB(1, 1, 1)                    # White for zero
+	color_max = RGB(255 / 255, 100 / 255, 100 / 255)  # Bright pink for positive values
+
+	# Create a custom color gradient with white at the midpoint
+	custom_colormap_with_white = cgrad([color_min, color_mid, color_max], [0.0, 0.5, 1.0])
 
     #-------------------------------------------------------------------------------------------------------  
     # recurrance coefficients 
@@ -157,7 +170,7 @@ let
         end
         orthogonalize!(ρ, Int(floor((bpose_st + bpose_en) / 2)))
         #-------------------------------------------------------------------------------------------------------
-        if t % 40 == 0
+        if t % 2 == 1
             # Measurement
             pd = exp(loginner(pop2_op, ρ; cutoff=cutoff1))
             append!(pop_ph, pd)
@@ -170,14 +183,28 @@ let
 
 
             density_matrix = findrho2_en_in(ρ, stbath, dh)
+            @show tr(density_matrix)
 
             # Compute the Wigner function
-            W = wigner_clenshaw(density_matrix, xvec, yvec, sqrt(2), false)
+            W = parallel_wigner_clenshaw(density_matrix, xvec, yvec, sqrt(2), false)
             dx = step(xvec)  # Grid spacing in x-direction
             dy = step(yvec)  # Grid spacing in y-direction
             @show sum(W) * dx * dy
-            write_for_loop(file_name_txt_RHO, string(2), "cutoff = $cutoff1, T = $temps, maxdim = $maxdim1, dt = $tau", string(W))
+            #write_for_loop(file_name_txt_RHO, string(2), "cutoff = $cutoff1, T = $temps, maxdim = $maxdim1, dt = $tau", string(W))
 
+            ##########################################################################################
+            p = heatmap(
+				xlim = (minimum(xvec), maximum(xvec)), ylim = (minimum(yvec), maximum(yvec)),
+				xvec, yvec, W,
+				color = custom_colormap_with_white,  # Custom colormap with white at zero
+				xlabel = L"x", ylabel = L"p",
+				title = L"W(x,p)",
+				#colorbar_title="Value",           # Label for the color bar
+				clim = (-0.2, 0.2),                # Adjust the range to highlight negative regions
+				aspect_ratio = 1.0,               # Set the aspect ratio to 1:1
+			)
+			display("image/png", p)
+            ##########################################################################################
         end
     end
 

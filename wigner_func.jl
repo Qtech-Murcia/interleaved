@@ -132,3 +132,34 @@ function wigner_clenshaw(rho, xvec, yvec, g, sparse)
 end
 
 
+function wigner_clenshaw(
+    ρ::AbstractArray{T1},
+    xvec::AbstractVector{T},
+    yvec::AbstractVector{T},
+    g::Real)
+
+    
+    g = convert(T, g)
+    M = size(ρ, 1)
+    X, Y = meshgrid(xvec, yvec)
+    A = g * (X + 1im * Y)
+
+    B = abs.(A)
+    B .*= B
+    W = similar(A)
+    W .= 2 * ρ[1, end]
+    L = M - 1
+
+    y0 = similar(B, T1)
+    y1 = similar(B, T1)
+    y0_old = copy(y0)
+    res = similar(y0)
+
+    while L > 0
+        L -= 1
+        ρdiag = _wig_laguerre_clenshaw!(res, L, B, lmul!(1 + Int(L != 0), diag(ρ, L)), y0, y1, y0_old)
+        @. W = ρdiag + W * A / √(L + 1)
+    end
+
+    return @. real(W) * exp(-B / 2) * g^2 / 2 / π
+end
