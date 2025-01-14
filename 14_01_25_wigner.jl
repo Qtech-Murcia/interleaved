@@ -166,7 +166,7 @@ let    #@
 		end
 		orthogonalize!(ρ, Int(floor((bpose_st + bpose_en) / 2)))
 		#-------------------------------------------------------------------------------------------------------
-		if t % 2 == 1
+		if t % 100 == 1
 			# Measurement
 			pd = exp(loginner(pop2_op, ρ; cutoff = cutoff1))
 			append!(pop_ph, pd)
