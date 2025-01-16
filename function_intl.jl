@@ -91,7 +91,9 @@ function RKM_rho_in(y0, L, h, cutoff1, maxdim1)                            #__@_
 end
 ##########################################################################
 function findrho2_en_in(ρ_in, stbath, dh)
-    rho_in = mode_only_en_in(dh, ρ_in, stbath)
+    rho_i = mode_only_en_in(dh, ρ_in, stbath)
+    rho_in = rho_i/tr(rho_i)
+    #@show tr(rho_in)
     nt = Int(log2(dh))
     st = stbath[1:nt]
     rho = Matrix{ComplexF64}(undef, dh, dh)

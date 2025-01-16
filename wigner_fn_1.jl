@@ -1,4 +1,10 @@
 
+# Add workers for parallel processing (if not already added)
+# You can specify the number of workers as needed.
+if nprocs() == 1
+    addprocs()
+end
+#= 
 """
     extract_diag(mat, l)
 
@@ -10,8 +16,8 @@ Extracts the l-th diagonal of a matrix.
 
 # Returns
 - A vector containing the elements of the specified diagonal.
-"""
-function extract_diag(mat, l)
+""" =#
+@everywhere function extract_diag(mat, l)
     if l >= 0
         idx = 1:min(size(mat, 1), size(mat, 2) - l)
         return [mat[i, i + l] for i in idx]
@@ -22,7 +28,7 @@ function extract_diag(mat, l)
     end
 end
 
-"""
+#= """
     _wig_laguerre_val(L, x, c)
 
 Computes the weighted Laguerre polynomial values using Clenshaw recursion.
@@ -34,20 +40,20 @@ Computes the weighted Laguerre polynomial values using Clenshaw recursion.
 
 # Returns
 - A 2D array of Laguerre polynomial values weighted by the coefficients.
-"""
-function _wig_laguerre_val(L, x, c)
+""" =#
+@everywhere function _wig_laguerre_val(L, x, c)
     #c_L = _wig_laguerre_val(L, x, diag(rho, L))
-    """
+    #= """
     this is evaluation of polynomial series inspired by hermval from numpy.    
     Returns polynomial series
     sum_n b_n LL_n^L,
     where
     LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]    
     The evaluation uses Clenshaw recursion
-    """
+    """ =#
 
     n = length(c)
-    
+
     # Special cases for short coefficient arrays
     if n == 1
         return c[1]  # Single coefficient case
@@ -65,7 +71,7 @@ function _wig_laguerre_val(L, x, c)
     # Final term
     return y0 .- y1 .* ((L + 1) .- x) ./ sqrt(L + 1)  # Broadcasting subtraction and division
 end
-
+#= 
 """
     wigner_clenshaw(rho, xvec, yvec, g = sqrt(2), sparse = false)
 
@@ -80,15 +86,15 @@ Calculates the Wigner function using Clenshaw summation for numerical stability 
 
 # Returns
 - A 2D array representing the Wigner function over the specified grid.
-"""
-function wigner_clenshaw(rho, xvec, yvec, g, sparse)
-    """
+""" =#
+function parallel_wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=false)
+    #= """
     The Wigner function is calculated as
     :math:`W = e^(-0.5*x^2)/pi * sum_{L} c_L (2x)^L / sqrt(L!)` where 
     :math:`c_L = sum_n rho_{n,L+n} LL_n^L` where
     :math:`LL_n^L = (-1)^n sqrt(L!n!/(L+n)!) LaguerreL[n,L,x]`
     
-    """
+    """ =#
     M = size(rho, 1)  # Dimension of the density matrix
     # Compute the 2D grid of complex coordinates
     X = xvec'  # Transposed x-coordinates for broadcasting
@@ -106,14 +112,18 @@ function wigner_clenshaw(rho, xvec, yvec, g, sparse)
         local_rho = copy(rho)  # Make a local copy to avoid modifying input
         local_rho .= local_rho .* (2 .- I(M))  # Subtract identity matrix I(M)
         diag_cache = [extract_diag(local_rho, l) for l in 0:L]  # Precompute all diagonals
-        for l in reverse(0:L-1)  # Iterate over degrees in reverse
+
+        # Parallel processing of diagonals
+        @distributed for l in reverse(0:L-1)
             diag = diag_cache[l + 1]
             w0 .= _wig_laguerre_val(l, B, diag) .+ w0 .* A2 .* inv(sqrt(l + 1))
         end
     else
         # Sparse matrix mode
         data, indices, indptr = sparsematrix_parts(rho)  # Extract CSR components
-        for l in reverse(0:L-1)  # Iterate over degrees in reverse
+
+        # Parallel processing of diagonals
+        @distributed for l in reverse(0:L-1)
             diag = _csr_get_diag(data, indices, indptr, l, M, M)  # Extract L-th diagonal
             if l != 0
                 diag .= diag .* 2  # Scale non-zero diagonals
@@ -121,14 +131,12 @@ function wigner_clenshaw(rho, xvec, yvec, g, sparse)
             w0 .= _wig_laguerre_val(l, B, diag) .+ w0 .* A2 .* inv(sqrt(l + 1))
         end
     end
+
     dx = step(xvec)  # Grid spacing in x-direction
     dy = step(yvec)  # Grid spacing in y-direction
-    #ſ@show normalization = sum(real(w0) .* exp.(-B * 0.5)) .* (1/ π) * dx * dy
-    W = real(w0) .* exp.(-B * 0.5) .* (1/ π) #.*(1/normalization)
 
-
-    # Compute the final Wigner function
-    return real(W)
+    # Final computation of the Wigner function
+    W = real(w0) .* exp.(-B * 0.5) .* (1 / π)
+@show normalization = sum(real(W)) * dx * dy
+    return W
 end
-
-
