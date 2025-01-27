@@ -58,13 +58,13 @@ function dynamical_trunc_MP_in(rho, maxdim1, maxdim2, steepness, max_frac, sysp,
     tot_gap = 2 * p_gap
     rho = ITensors.truncate(rho; maxdim=maxdim1)
     list = linkdims(rho)
-    link_front = length(list) - findfirst(==(findmax(list)[1]), reverse(list))[1] + 1
-
+    link_front = length(list) - findfirst(==(findmax(list)[1]), reverse(list))[2] + 1
+    
     if (list[Int(sysp + tot_gap)] == maxdim1)
         #--------------------------------------------------------------------------------------------
         for i in Int(sysp + p_gap):Int(length(list)[1] - 1)
             if list[i] - list[i+1] < steepness && i > Int(floor((4*link_front + sysp + p_gap) / 5))     #__@__
-                rho = ITensors.truncate(rho; maxdim=max(Int(floor(list[i] * max_frac)), maxdim2), site_range=i:length(list))
+                rho = ITensors.truncate(rho; maxdim=max(Int(floor(list[i] * max_frac)), maxdim2), site_range=i:lastindex(list))
             else
                 continue
             end
